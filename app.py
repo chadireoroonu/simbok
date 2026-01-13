@@ -16,7 +16,7 @@ st.write("실시간 뉴스를 수집해서 깔끔하게 정리해 드립니다!"
 with st.sidebar:
     st.header("🔍 검색 설정")
     keyword = st.text_input("키워드", value="키워드")
-    max_pages = st.number_input("수집 페이지 수", min_value=1, max_value=10, value=3)
+    max_pages = st.number_input("수집 페이지 수", min_value=1, max_value=20, value=5)
     st.divider()
     st.subheader("📅 조회 기간 설정")
     # 사용자가 달력에서 날짜 범위를 선택하게 합니다.
