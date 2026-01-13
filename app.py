@@ -56,6 +56,9 @@ def crawl_news(keyword, pages):
                 title_tag = item.select_one("div.item-title strong.tit-g a") or item.select_one("a.el-title")
                 title = title_tag.get_text(strip=True) if title_tag else ""
                 
+                # 링크 추출
+                link = title_tag['href']
+                
                 # 언론사 추출
                 press_tag = item.select_one("span.txt_info") or item.select_one("span.el-info")
                 press = press_tag.get_text(strip=True) if press_tag else "언론사"
@@ -95,6 +98,7 @@ def crawl_news(keyword, pages):
                     "title": title, 
                     "press": press,
                     "summary": summary,
+                    "link": link,
                     "date": final_date,
                     "date_obj": date_obj # 필터링용
                 })
@@ -132,6 +136,7 @@ if st.button("뉴스 수집 시작! 🚀"):
                     for idx, row in df.iterrows():
                         with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}"):
                             st.write(row['summary'])
+                            st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
                 else:
                     st.warning("해당 날짜 범위에 뉴스 기사가 없어요. 😢")
             else:
