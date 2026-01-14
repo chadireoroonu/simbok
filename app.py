@@ -131,13 +131,17 @@ def get_full_content(url):
     except Exception as e:
         return f"본문 불러오기 중 에러 발생: {e}"
 
+# 세션 상태 초기화
+if 'filtered_df' not in st.session_state:
+    st.session_state['filtered_df'] = None
+
 # 실행 버튼
 if st.button("뉴스 수집 시작! 🚀"):
     if len(date_range) != 2:
         st.warning("시작일과 종료일을 모두 선택해 주세요! 📅")
     else:
         start_date, end_date = date_range
-        # 선택한 날짜를 비교 가능하게 변환 (시간 정보 제거)
+        # 선택한 날짜를 비교 가능하게 변환
         start_dt = datetime.combine(start_date, datetime.min.time())
         end_dt = datetime.combine(end_date, datetime.max.time())
 
@@ -150,22 +154,29 @@ if st.button("뉴스 수집 시작! 🚀"):
                     a for a in all_data 
                     if a['date_obj'] and start_dt <= a['date_obj'] <= end_dt
                 ]
-                
-                df = pd.DataFrame(filtered_data).drop_duplicates(subset=['title'])
-                
-                if not df.empty:
-                    st.success(f"📅 {start_date} ~ {end_date} 사이에 총 {len(df)}개의 기사를 찾았습니다!")
-                    for idx, row in df.iterrows():
-                        with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}"):
-                            st.write(row['summary'])
-                            st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
+                if filtered_data:
+                    # 데이터프레임 생성 및 중복 제거
+                    df = pd.DataFrame(filtered_data).drop_duplicates(subset=['title'])
+                    # 수집 데이터 세션 상태 저장
+                    st.session_state['filtered_df'] = df
 
-                            if st.button("상세 내용 전체 보기 📖", key=f"btn_{idx}"):
-                                with st.spinner('본문 데이터를 가져오는 중...'):
-                                    full_text = get_full_content(row['link'])
-                                    st.markdown("---")
-                                    st.markdown("---")
                 else:
                     st.warning("해당 날짜 범위에 뉴스 기사가 없어요. 😢")
             else:
                 st.error("데이터 수집 실패! 다시 시도해 주세요.")
+
+# 결과 출력
+if st.session_state['filtered_df'] is not None:
+    df = st.session_state['filtered_df']
+    st.success(f"총 {len(df)}개의 고유 기사를 찾았습니다! 🎉")
+    
+    for idx, row in df.iterrows():
+        with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}"):
+            st.write(row['summary'])
+            st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
+               
+            # 버튼의 key값에 idx를 넣어 고유화
+            if st.button("상세 내용 전체 보기 📖", key=f"btn_{idx}"):
+                with st.spinner('본문 데이터를 싹 긁어오는 중...'):
+                    full_text = get_full_content(row['link'])
+                    st.info(full_text) # 본문내용 info에 담아 보여주기
