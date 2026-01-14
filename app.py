@@ -30,7 +30,7 @@ with st.sidebar:
     st.info("선택한 날짜 내의 기사만 표시됩니다. 🕒")
 
 
-# 크롤링
+# 기사 목록 크롤링
 def crawl_news(keyword, pages):
     article_list = []
     headers = {
@@ -109,6 +109,28 @@ def crawl_news(keyword, pages):
             
     return article_list
 
+# 기사 전문 크롤링
+def get_full_content(url):
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"}
+        res = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        
+        # section[dmcf-sid] 다음 뉴스 속성
+        content_area = soup.select_one('section[dmcf-sid]') or \
+                       soup.select_one('.article_view') or \
+                       soup.select_one('#harmonyContainer') or \
+                       soup.select_one('article')
+        
+        if content_area:
+            paragraphs = content_area.find_all(['p', 'br'])
+            text_lines = [p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)]
+            return "\n\n".join(text_lines)
+        else:
+            return "본문 영역찾기에 실패했어요 🔗"
+    except Exception as e:
+        return f"본문 불러오기 중 에러 발생: {e}"
+
 # 실행 버튼
 if st.button("뉴스 수집 시작! 🚀"):
     if len(date_range) != 2:
@@ -137,6 +159,12 @@ if st.button("뉴스 수집 시작! 🚀"):
                         with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}"):
                             st.write(row['summary'])
                             st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
+
+                            if st.button("상세 내용 전체 보기 📖", key=f"btn_{idx}"):
+                                with st.spinner('본문 데이터를 가져오는 중...'):
+                                    full_text = get_full_content(row['link'])
+                                    st.markdown("---")
+                                    st.markdown("---")
                 else:
                     st.warning("해당 날짜 범위에 뉴스 기사가 없어요. 😢")
             else:
