@@ -166,17 +166,28 @@ if st.button("뉴스 수집 시작! 🚀"):
                 st.error("데이터 수집 실패! 다시 시도해 주세요.")
 
 # 결과 출력
+if 'expanded_idx' not in st.session_state:
+    st.session_state['expanded_idx'] = None
+
 if st.session_state['filtered_df'] is not None:
     df = st.session_state['filtered_df']
     st.success(f"총 {len(df)}개의 고유 기사를 찾았습니다! 🎉")
     
     for idx, row in df.iterrows():
-        with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}"):
+        is_expanded = (st.session_state['expanded_idx'] == idx)
+
+        with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}", expanded=is_expanded):
             st.write(row['summary'])
             st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
                
-            # 버튼의 key값에 idx를 넣어 고유화
             if st.button("상세 내용 전체 보기 📖", key=f"btn_{idx}"):
+                st.session_state['expanded_idx'] = idx # 버튼 클릭시 현재 인덱스 세션에 저장
+                
                 with st.spinner('본문 데이터를 싹 긁어오는 중...'):
                     full_text = get_full_content(row['link'])
-                    st.info(full_text) # 본문내용 info에 담아 보여주기
+                    st.session_state[f'content_{idx}'] = full_text # 즉시 반영
+                    st.rerun()
+
+            if f'content_{idx}' in st.session_state and is_expanded:
+                st.markdown("---")
+                st.info(st.session_state[f'content_{idx}'])
