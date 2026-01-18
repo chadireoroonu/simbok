@@ -6,16 +6,23 @@ import time
 from datetime import datetime, timedelta
 import re
 import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+# 1. .env 파일 로드 (로컬 개발 환경용)
+load_dotenv()
+
+# 2. 시스템 환경 변수나 .env에서 API 키 가져오기
+DEFAULT_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
 st.set_page_config(page_title="뉴스 정리봇", page_icon="🛠️")
 
-# AI 가공 함수
+# --- AI 가공 함수 ---
 def generate_narration(api_key, text):
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('models/gemini-1.5-flash-8b')
         
-        # 향후 프롬프트 수정하기
         prompt = f"""
         당신은 실시간 뉴스를 아주 재미있고 귀에 쏙쏙 들어오게 전달하는 전문 뉴스 나레이터입니다.
         아래 뉴스 본문의 내용을 바탕으로, 시청자에게 직접 이야기하는 듯한 구어체 스타일로 정리해 주세요.
@@ -28,10 +35,11 @@ def generate_narration(api_key, text):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
+        # 429 에러(Quota Exceeded) 등 구체적인 에러 메시지 반환
         return f"AI 가공 중 에러 발생: {e}"
 
-# UI
-st.title("뉴스 요약기")
+# --- UI 레이아웃 ---
+st.title(" 뉴스 요약기")
 st.write("실시간 뉴스를 수집해서 AI가 깔끔하게 정리해 드립니다!")
 
 # 사이드바
@@ -42,8 +50,24 @@ with st.sidebar:
     
     st.divider()
     st.subheader("🔑 AI 설정")
-    google_api_key = st.text_input("Google API Key", type="password", placeholder="API 키를 입력하세요 🗝️")
-    st.caption("발급처: [Google AI Studio](https://aistudio.google.com/app/apikey)")
+    
+    # 사용자 입력 키 (기본값으로 .env의 키를 넣어둠)
+    user_api_key = st.text_input(
+        "Google API Key", 
+        type="password", 
+        value=DEFAULT_API_KEY, 
+        placeholder="API 키를 입력하세요 🗝️"
+    )
+    
+    # 최종 사용 키 결정 로직
+    target_api_key = user_api_key if user_api_key else DEFAULT_API_KEY
+    
+    if user_api_key == DEFAULT_API_KEY and DEFAULT_API_KEY:
+        st.caption("✅ 시스템 설정된 API 키가 불러와졌습니다.")
+    elif user_api_key:
+        st.caption("✅ 사용자가 직접 입력한 키를 사용합니다.")
+    else:
+        st.caption("발급처: [Google AI Studio](https://aistudio.google.com/app/apikey)")
     
     st.divider()
     st.subheader("📅 조회 기간 설정")
@@ -51,7 +75,7 @@ with st.sidebar:
     seven_days_ago = today - timedelta(days=7)
     date_range = st.date_input("조회 시작일 - 종료일", value=(seven_days_ago, today), max_value=today)
 
-# 뉴스 크롤링
+# --- 뉴스 크롤링 함수들 ---
 def crawl_news(keyword, pages):
     article_list = []
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"}
@@ -138,7 +162,7 @@ if st.button("뉴스 수집 시작! 🚀"):
             else:
                 st.error("데이터 수집 실패!")
 
-# --- 결과 출력 로직 ---
+# 결과 출력
 if st.session_state['filtered_df'] is not None:
     df = st.session_state['filtered_df']
     st.success(f"총 {len(df)}개의 고유 기사를 찾았습니다! 🎉")
@@ -165,11 +189,12 @@ if st.session_state['filtered_df'] is not None:
                 # 버튼 2: AI 나레이션 가공
                 st.subheader("🎙️ AI 나레이션 가공")
                 if st.button("AI 나레이션 생성 시작! ✨", key=f"ai_{idx}"):
-                    if not google_api_key:
-                        st.warning("사이드바에 API 키를 넣어주세요! 🔑")
+                    if not target_api_key:
+                        st.warning("사이드바에 API 키를 넣어주거나 .env 파일을 확인해 주세요! 🔑")
                     else:
                         with st.spinner('Gemini AI가 가공하는 중...'):
-                            narration = generate_narration(google_api_key, st.session_state[f'content_{idx}'])
+                            # 최종 결정된 키(target_api_key)를 사용
+                            narration = generate_narration(target_api_key, st.session_state[f'content_{idx}'])
                             st.session_state[f'narration_{idx}'] = narration
                         st.rerun()
 
