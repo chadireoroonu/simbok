@@ -5,81 +5,86 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta
 import re
-import google.generativeai as genai
 import os
+from google import genai
 from dotenv import load_dotenv
 
-# 1. .env 파일 로드 (로컬 개발 환경용)
 load_dotenv()
-
-# 2. 시스템 환경 변수나 .env에서 API 키 가져오기
 DEFAULT_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
 st.set_page_config(page_title="뉴스 정리봇", page_icon="🛠️")
 
-# --- AI 가공 함수 ---
+# API 키 테스트
+def test_api_key(api_key):
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents="안녕"
+        )
+        if response.text:
+            return True, "✅ 연결 성공!"
+    except Exception as e:
+        return False, f"❌ 연결 실패! 에러: {e}"
+
+# AI 가공 함수
 def generate_narration(api_key, text):
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('models/gemini-1.5-flash-8b')
-        
-        prompt = f"""
-        당신은 실시간 뉴스를 아주 재미있고 귀에 쏙쏙 들어오게 전달하는 전문 뉴스 나레이터입니다.
-        아래 뉴스 본문의 내용을 바탕으로, 시청자에게 직접 이야기하는 듯한 구어체 스타일로 정리해 주세요.
-        너무 길지 않게 핵심만 짚어서 3문장 정도로 가공해 주세요.
-        
-        뉴스 본문:
-        {text}
-        """
-        
-        response = model.generate_content(prompt)
+        client = genai.Client(api_key=api_key)
+        prompt = f"아래 뉴스를 10문장 이내의 구어체로 요약해줘:\n{text[:6000]}"
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         return response.text
     except Exception as e:
-        # 429 에러(Quota Exceeded) 등 구체적인 에러 메시지 반환
         return f"AI 가공 중 에러 발생: {e}"
 
-# --- UI 레이아웃 ---
-st.title(" 뉴스 요약기")
-st.write("실시간 뉴스를 수집해서 AI가 깔끔하게 정리해 드립니다!")
+# UI 레이아웃
+st.title("🦁 뉴스 요약기")
 
 # 사이드바
 with st.sidebar:
     st.header("🔍 검색 설정")
-    keyword = st.text_input("키워드", value="키워드")
+    keyword = st.text_input("키워드", value="심복")
     max_pages = st.number_input("수집 페이지 수", min_value=1, max_value=20, value=5)
-    
     st.divider()
     st.subheader("🔑 AI 설정")
-    
-    # 사용자 입력 키 (기본값으로 .env의 키를 넣어둠)
+
     user_api_key = st.text_input(
-        "Google API Key", 
-        type="password", 
-        value=DEFAULT_API_KEY, 
+        "Google API Key",
+        type="password",
+        value=DEFAULT_API_KEY,
         placeholder="API 키를 입력하세요 🗝️"
     )
-    
-    # 최종 사용 키 결정 로직
     target_api_key = user_api_key if user_api_key else DEFAULT_API_KEY
-    
+
+    if st.button("🔌 API 연결 테스트"):
+        if not target_api_key:
+            st.error("API 키가 입력되지 않았습니다!")
+        else:
+            with st.spinner("연결 확인 중..."):
+                success, message = test_api_key(target_api_key)
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
+
     if user_api_key == DEFAULT_API_KEY and DEFAULT_API_KEY:
-        st.caption("✅ 시스템 설정된 API 키가 불러와졌습니다.")
+        st.caption("✅ 시스템(.env) API 키 로드됨")
     elif user_api_key:
-        st.caption("✅ 사용자가 직접 입력한 키를 사용합니다.")
-    else:
-        st.caption("발급처: [Google AI Studio](https://aistudio.google.com/app/apikey)")
-    
+        st.caption("✅ 사용자 입력 API 키 사용 중")
+
     st.divider()
     st.subheader("📅 조회 기간 설정")
     today = datetime.now()
     seven_days_ago = today - timedelta(days=7)
     date_range = st.date_input("조회 시작일 - 종료일", value=(seven_days_ago, today), max_value=today)
 
-# --- 뉴스 크롤링 함수들 ---
+# 뉴스 크롤링
 def crawl_news(keyword, pages):
     article_list = []
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"}
-    
     for page in range(1, pages + 1):
         url = f"https://search.daum.net/search?w=news&q={keyword}&p={page}&f=sort&sort=rec"
         try:
@@ -87,7 +92,6 @@ def crawl_news(keyword, pages):
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
             news_items = soup.find_all('li', {'data-docid': True}) or soup.select("ul.c-list-basic > li")
-
             for item in news_items:
                 title_tag = item.select_one("div.item-title strong.tit-g a") or item.select_one("a.el-title")
                 title = title_tag.get_text(strip=True) if title_tag else ""
@@ -98,7 +102,6 @@ def crawl_news(keyword, pages):
                 summary = summary_tag.get_text(strip=True) if summary_tag else "요약 없음"
                 date_text_tag = item.select_one("span.gem-subinfo span.txt_info")
                 date_text = date_text_tag.get_text(strip=True) if date_text_tag else "날짜불명"
-                
                 date_obj = None
                 if date_text != "날짜불명":
                     now = datetime.now()
@@ -115,14 +118,15 @@ def crawl_news(keyword, pages):
                             elif "어제" in date_text:
                                 date_obj = now - timedelta(days=1)
                         except: date_obj = None
-                
                 final_date = date_obj.strftime('%Y.%m.%d') if date_obj else "날짜불명"
                 article_list.append({"title": title, "press": press, "summary": summary, "link": link, "date": final_date, "date_obj": date_obj})
         except Exception as e:
             st.error(f"페이지 {page} 수집 중 오류: {e}")
             continue
+
     return article_list
 
+# 상세 내용 크롤링
 def get_full_content(url):
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"}
@@ -137,7 +141,6 @@ def get_full_content(url):
     except Exception as e:
         return f"본문 불러오기 중 에러 발생: {e}"
 
-# --- 메인 로직 ---
 if 'filtered_df' not in st.session_state:
     st.session_state['filtered_df'] = None
 if 'expanded_idx' not in st.session_state:
@@ -150,7 +153,6 @@ if st.button("뉴스 수집 시작! 🚀"):
         start_date, end_date = date_range
         start_dt = datetime.combine(start_date, datetime.min.time())
         end_dt = datetime.combine(end_date, datetime.max.time())
-
         with st.spinner('뉴스를 긁어오는 중...'):
             all_data = crawl_news(keyword, max_pages)
             if all_data:
@@ -162,42 +164,30 @@ if st.button("뉴스 수집 시작! 🚀"):
             else:
                 st.error("데이터 수집 실패!")
 
-# 결과 출력
 if st.session_state['filtered_df'] is not None:
     df = st.session_state['filtered_df']
     st.success(f"총 {len(df)}개의 고유 기사를 찾았습니다! 🎉")
-    
     for idx, row in df.iterrows():
         is_expanded = (st.session_state['expanded_idx'] == idx)
-        
         with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}", expanded=is_expanded):
             st.write(row['summary'])
             st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
-               
-            # 버튼 1: 본문 긁어오기
             if st.button("상세 내용 전체 보기 📖", key=f"btn_{idx}"):
                 st.session_state['expanded_idx'] = idx
                 with st.spinner('본문을 가져오는 중...'):
                     st.session_state[f'content_{idx}'] = get_full_content(row['link'])
                 st.rerun()
-
-            # 본문 내용 표시
             if f'content_{idx}' in st.session_state and is_expanded:
                 st.markdown("---")
                 st.info(st.session_state[f'content_{idx}'])
-                
-                # 버튼 2: AI 나레이션 가공
                 st.subheader("🎙️ AI 나레이션 가공")
                 if st.button("AI 나레이션 생성 시작! ✨", key=f"ai_{idx}"):
                     if not target_api_key:
-                        st.warning("사이드바에 API 키를 넣어주거나 .env 파일을 확인해 주세요! 🔑")
+                        st.warning("사이드바에 API 키를 넣어주세요! 🔑")
                     else:
                         with st.spinner('Gemini AI가 가공하는 중...'):
-                            # 최종 결정된 키(target_api_key)를 사용
                             narration = generate_narration(target_api_key, st.session_state[f'content_{idx}'])
                             st.session_state[f'narration_{idx}'] = narration
                         st.rerun()
-
-                # AI 결과 표시
                 if f'narration_{idx}' in st.session_state:
                     st.write(st.session_state[f'narration_{idx}'])
