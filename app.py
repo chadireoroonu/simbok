@@ -19,7 +19,7 @@ def test_api_key(api_key):
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents="안녕"
         )
         if response.text:
@@ -33,7 +33,7 @@ def generate_narration(api_key, text):
         client = genai.Client(api_key=api_key)
         prompt = f"아래 뉴스를 10문장 이내의 구어체로 요약해줘:\n{text[:6000]}"
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt
         )
         return response.text
