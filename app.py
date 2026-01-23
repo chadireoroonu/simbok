@@ -171,7 +171,6 @@ if st.session_state['filtered_df'] is not None:
         is_expanded = (st.session_state['expanded_idx'] == idx)
         with st.expander(f"[{row['date']}] [{row['press']}] - {row['title']}", expanded=is_expanded):
             st.write(row['summary'])
-            st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
             if st.button("상세 내용 전체 보기 📖", key=f"btn_{idx}"):
                 st.session_state['expanded_idx'] = idx
                 with st.spinner('본문을 가져오는 중...'):
@@ -191,3 +190,4 @@ if st.session_state['filtered_df'] is not None:
                         st.rerun()
                 if f'narration_{idx}' in st.session_state:
                     st.write(st.session_state[f'narration_{idx}'])
+            st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
