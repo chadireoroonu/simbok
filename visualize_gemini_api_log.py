@@ -17,7 +17,7 @@ success_rate = success_rate.sort_values(ascending=False).reset_index()
 
 # 그래프 생성 모델별 성공률 순위
 plt.figure(figsize=(10, 6))
-sns.barplot(data=success_rate, x='Status_Value', y='Model_Name', palette='viridis')
+sns.barplot(data=success_rate, x='Status_Value', y='Model_Name', hue='Model_Name', palette='viridis', legend=False)
 plt.xlim(0, 100) # 막대가 오른쪽에 닿도록 수정
 plt.title('Gemini API Success Rate by Model (%)', fontsize=15)
 plt.xlabel('Success Rate (%)', fontsize=12)
