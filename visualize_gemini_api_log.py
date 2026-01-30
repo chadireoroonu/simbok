@@ -11,6 +11,8 @@ if not os.path.exists(file_name):
 else:
     df = pd.read_csv(file_name)
     df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+    df['Model_Name'] = df['Model_Name'].str.replace('models/', '', regex=False) # 모델명 수정
+    df['Clean_Timestamp'] = df['Timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S') # 나노초 제거
     df['Status_Value'] = df['Status'].map({'Success': 1, 'Fail': 0})
     df['Hour'] = df['Timestamp'].dt.hour
 
