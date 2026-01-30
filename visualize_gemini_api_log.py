@@ -33,9 +33,10 @@ else:
     plt.close()
 
     # 그래프 2: 시간대별 히트맵
-    pivot_df = df.pivot_table(index='Model_Name', columns='Timestamp', values='Status_Value')
+    pivot_df = df.pivot_table(index='Model_Name', columns='Clean_Timestamp', values='Status_Value')
     plt.figure(figsize=(12, 8))
-    sns.heatmap(pivot_df, cmap='RdYlGn', cbar_kws={'label': '0: Fail, 1: Success'})
+    # sns.heatmap(pivot_df, cmap='RdYlGn', cbar_kws={'label': '0: Fail, 1: Success'})
+    sns.heatmap(pivot_df, cmap='RdYlGn', cbar=False) # 범례 삭제
     plt.title('API Status Timeline Heatmap', fontsize=15)
     plt.xlabel('Time', fontsize=12)
     plt.ylabel('Model Name', fontsize=12)
