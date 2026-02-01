@@ -5,16 +5,23 @@ import os
 import matplotlib
 
 # 데이터 로드 및 통합 전처리
-file_name = "all_models_24h_test_log"
+file_name = "72h_test_log_20260129.csv"
 if not os.path.exists(file_name):
     print(f"❌ 에러: '{file_name}' 파일이 없습니다.")
 else:
+    # 파일명 정보 추출
+    name_parts = file_name.replace('.csv', '').split('_')
+    title_info = f"{name_parts[0]} {name_parts[-1]}"
+    save_info = f"{name_parts[0]}_{name_parts[-1]}"
+
     df = pd.read_csv(file_name)
     df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-    df['Model_Name'] = df['Model_Name'].str.replace('models/', '', regex=False) # 모델명 수정
-    df['Clean_Timestamp'] = df['Timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S') # 나노초 제거
+    df['Clean_Timestamp'] = df['Timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S') # 나노초 삭제
     df['Status_Value'] = df['Status'].map({'Success': 1, 'Fail': 0})
     df['Hour'] = df['Timestamp'].dt.hour
+
+    # 모델 이름에서 models/ 제거
+    df['Model_Name'] = df['Model_Name'].str.replace('models/', '', regex=False)
 
     # 모델별 성공률 계산
     success_rate_desc = df.groupby('Model_Name')['Status_Value'].mean().sort_values(ascending=False).reset_index()
@@ -37,11 +44,11 @@ else:
     plt.figure(figsize=(12, 8))
     # sns.heatmap(pivot_df, cmap='RdYlGn', cbar_kws={'label': '0: Fail, 1: Success'})
     sns.heatmap(pivot_df, cmap='RdYlGn', cbar=False) # 범례 삭제
-    plt.title('API Status Timeline Heatmap', fontsize=15)
+    plt.title(f'API Status Timeline Heatmap ({title_info})', fontsize=15)
     plt.xlabel('Time', fontsize=12)
     plt.ylabel('Model Name', fontsize=12)
     plt.tight_layout()
-    plt.savefig('api_timeline_heatmap.png')
+    plt.savefig(f"{save_info}_api_timeline_heatmap.png")
     plt.close()
 
     # 그래프 3: 요약 보고서
