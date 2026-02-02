@@ -24,12 +24,39 @@ else:
     df['Model_Name'] = df['Model_Name'].str.replace('models/', '', regex=False)
 
     # 모델별 성공률 계산
-    success_rate_desc = df.groupby('Model_Name')['Status_Value'].mean().sort_values(ascending=False).reset_index()
-    success_rate_desc['Success_Rate'] = success_rate_desc['Status_Value'] * 100
+    # success_rate_desc = df.groupby('Model_Name')['Status_Value'].mean().sort_values(ascending=False).reset_index()
+    # success_rate_desc['Success_Rate'] = success_rate_desc['Status_Value'] * 100
+
+    stats = df.groupby('Model_Name')['Status_Value'].agg(['mean', 'sum', 'count']).reset_index()
+    stats.columns = ['Model_Name', 'Success_Rate_Mean', 'Success_Count', 'Total_Count']
+    stats['Success_Rate'] = stats['Success_Rate_Mean'] * 100
+    success_rate_desc = stats.sort_values(ascending=False, by='Success_Rate')
 
     # 그래프 1: 모델별 성공률 순위
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=success_rate_desc, x='Success_Rate', y='Model_Name', hue='Model_Name', palette='viridis', legend=False)
+    plt.figure(figsize=(12, 7))
+    # Y축 순서를 보장하기 위해 order 매개변수 추가 가능
+    ax = sns.barplot(data=success_rate_desc, x='Success_Rate', y='Model_Name', 
+                    hue='Model_Name', palette='viridis', legend=False)
+    
+    for _, row in success_rate_desc.iterrows():
+        model_name = row['Model_Name']
+        v = row['Success_Rate']
+        success_count = int(row['Success_Count'])
+        total_count = int(row['Total_Count'])
+        combined_text = f"{v:.1f}%\n{success_count} / {total_count}"
+        
+        if v >= 20: # 성공률 20% 이상
+            x_pos = v - 2
+            ha = 'right'
+            color = 'white'
+        else: # 성공률 20% 미만
+            x_pos = v + 2
+            ha = 'left'
+            color = 'black'
+            
+        ax.text(x_pos, model_name, combined_text, 
+                va='center', ha=ha, fontsize=10, fontweight='bold', color=color)
+    
     plt.xlim(0, 100)
     plt.title('Gemini API Success Rate by Model (%)', fontsize=15)
     plt.xlabel('Success Rate (%)', fontsize=12)
