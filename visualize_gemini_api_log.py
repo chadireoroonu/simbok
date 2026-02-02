@@ -58,12 +58,12 @@ else:
                 va='center', ha=ha, fontsize=10, fontweight='bold', color=color)
     
     plt.xlim(0, 100)
-    plt.title('Gemini API Success Rate by Model (%)', fontsize=15)
+    plt.title(f'Gemini API Success Rate by Model ({title_info})', fontsize=15)
     plt.xlabel('Success Rate (%)', fontsize=12)
     plt.ylabel('Model Name', fontsize=12)
     plt.grid(axis='x', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig('api_success_rate.png')
+    plt.savefig(f'{save_info}_api_success_rate.png')
     plt.close()
 
     # 그래프 2: 시간대별 히트맵
