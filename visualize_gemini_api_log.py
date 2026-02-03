@@ -34,7 +34,6 @@ else:
 
     # 그래프 1: 모델별 성공률 순위
     plt.figure(figsize=(12, 7))
-    # Y축 순서를 보장하기 위해 order 매개변수 추가 가능
     ax = sns.barplot(data=success_rate_desc, x='Success_Rate', y='Model_Name', 
                     hue='Model_Name', palette='viridis', legend=False)
     
@@ -81,7 +80,7 @@ else:
     # 그래프 3: 요약 보고서
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14))
-    fig.suptitle('Gemini API 24H Monitoring Report', fontsize=20, fontweight='bold')
+    fig.suptitle(f'Gemini API 24H Monitoring Report ({title_info})', fontsize=20)
 
     success_rate_asc = df.groupby('Model_Name')['Status_Value'].mean().sort_values(ascending=True) * 100
     colors = ['#ff9999' if x < 50 else '#66b3ff' for x in success_rate_asc]
@@ -100,5 +99,5 @@ else:
     ax2.set_xticks(range(0, 24))
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig('api_summary_report.png', dpi=300)
+    plt.savefig(f'{save_info}_api_summary_report.png', dpi=300)
     plt.close()
