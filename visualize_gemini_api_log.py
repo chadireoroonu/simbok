@@ -24,9 +24,6 @@ else:
     df['Model_Name'] = df['Model_Name'].str.replace('models/', '', regex=False)
 
     # 모델별 성공률 계산
-    # success_rate_desc = df.groupby('Model_Name')['Status_Value'].mean().sort_values(ascending=False).reset_index()
-    # success_rate_desc['Success_Rate'] = success_rate_desc['Status_Value'] * 100
-
     stats = df.groupby('Model_Name')['Status_Value'].agg(['mean', 'sum', 'count']).reset_index()
     stats.columns = ['Model_Name', 'Success_Rate_Mean', 'Success_Count', 'Total_Count']
     stats['Success_Rate'] = stats['Success_Rate_Mean'] * 100
@@ -89,7 +86,7 @@ else:
                       color='#e74c3c', linewidth=2, label='Error Count')
     plt.fill_between(hourly_stats.index, hourly_stats['errors'], color='#e74c3c', alpha=0.1)
 
-    # 3. 각 점마다 상세 에러 지표 레이블 추가 (에러율% \n 에러/전체)
+    # 각 점마다 상세 에러 지표 레이블 추가 (에러율% \n 에러/전체)
     for h, row in hourly_stats.iterrows():
         err_val = int(row['errors'])
         total_val = int(row['count'])
