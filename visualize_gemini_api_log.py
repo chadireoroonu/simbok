@@ -77,27 +77,41 @@ else:
     plt.savefig(f"{save_info}_api_timeline_heatmap.png")
     plt.close()
 
-    # 그래프 3: 요약 보고서
+    # 그래프 3: 시간대별 에러 분석 리포트
     plt.style.use('seaborn-v0_8-whitegrid')
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 14))
-    fig.suptitle(f'Gemini API 24H Monitoring Report ({title_info})', fontsize=20)
+    plt.figure(figsize=(14, 7))
 
-    success_rate_asc = df.groupby('Model_Name')['Status_Value'].mean().sort_values(ascending=True) * 100
-    colors = ['#ff9999' if x < 50 else '#66b3ff' for x in success_rate_asc]
-    success_rate_asc.plot(kind='barh', ax=ax1, color=colors)
-    ax1.set_title('Model Success Rate (%)', fontsize=15)
-    ax1.set_xlim(0, 100)
-    for i, v in enumerate(success_rate_asc):
-        ax1.text(v + 1, i, f"{v:.1f}%", color='black', va='center', fontweight='bold')
+    hourly_stats = df.groupby('Hour')['Status_Value'].agg(['count', 'sum']).reindex(range(24), fill_value=0)
+    hourly_stats['errors'] = hourly_stats['count'] - hourly_stats['sum']
+    hourly_stats['error_rate'] = (hourly_stats['errors'] / hourly_stats['count'] * 100).fillna(0)
 
-    error_trend = df[df['Status'] == 'Fail'].groupby('Hour').size().reindex(range(24), fill_value=0)
-    sns.lineplot(x=error_trend.index, y=error_trend.values, ax=ax2, marker='o', color='#e74c3c', linewidth=2)
-    ax2.fill_between(error_trend.index, error_trend.values, color='#e74c3c', alpha=0.2)
-    ax2.set_title('Hourly Error Distribution', fontsize=15)
-    ax2.set_xlabel('Hour (0-23)')
-    ax2.set_ylabel('Error Count')
-    ax2.set_xticks(range(0, 24))
+    ax = sns.lineplot(x=hourly_stats.index, y=hourly_stats['errors'], marker='o', 
+                      color='#e74c3c', linewidth=2, label='Error Count')
+    plt.fill_between(hourly_stats.index, hourly_stats['errors'], color='#e74c3c', alpha=0.1)
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig(f'{save_info}_api_summary_report.png', dpi=300)
+    # 3. 각 점마다 상세 에러 지표 레이블 추가 (에러율% \n 에러/전체)
+    for h, row in hourly_stats.iterrows():
+        err_val = int(row['errors'])
+        total_val = int(row['count'])
+        rate_val = row['error_rate']
+        
+        label_text = f"{rate_val:.1f}%\n{err_val} / {total_val}"
+        
+        plt.text(h, err_val + 0.1, label_text, 
+                 ha='center', va='bottom', fontsize=9, fontweight='bold', color='#c0392b')
+
+    plt.title(f'Hourly API Error Analysis & Volume ({title_info})', fontsize=16, fontweight='bold')
+    plt.xlabel('Hour of Day (0-23)', fontsize=12)
+    plt.ylabel('Error Count', fontsize=12)
+    plt.xticks(range(0, 24))
+    
+    # 레이블 공간 확보용 y축 상단 여백 조정
+    if hourly_stats['errors'].max() > 0:
+        plt.ylim(0, hourly_stats['errors'].max() * 1.3)
+    else:
+        plt.ylim(0, 5)
+
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(f'{save_info}_api_error_analysis.png', dpi=300)
     plt.close()
