@@ -89,6 +89,7 @@ else:
     plt.xlabel('Hour of Day (0-23)', fontsize=12)
     plt.ylabel('Error Count', fontsize=12)
     plt.xticks(range(0, 24))
+    plt.xlim(0, 23) # 양 끝 빈 공간 제거
     
     # 레이블 공간 확보용 y축 상단 여백 조정
     plt.ylim(0, hourly_stats['errors'].max() * 1.3 if hourly_stats['errors'].max() > 0 else 5)
