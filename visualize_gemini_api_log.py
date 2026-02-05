@@ -82,7 +82,7 @@ else:
 
     for h, row in hourly_stats.iterrows():
         e, c, r = int(row['errors']), int(row['count']), row['error_rate']
-        plt.text(h, e + 0.1, f"{r:.1f}%\n{e} / {c}", ha='center', va='bottom', 
+        plt.text(h, e + 0.7, f"{r:.1f}%\n{e} / {c}", ha='center', va='bottom', 
                  fontsize=9, fontweight='bold', color='#c0392b', multialignment='center')
 
     plt.title(f'Hourly API Error Analysis & Volume ({title_info})', fontsize=16, fontweight='bold')
