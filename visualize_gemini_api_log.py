@@ -6,15 +6,22 @@ import matplotlib
 
 # 데이터 로드 및 통합 전처리
 file_name = "72h_test_log_20260129.csv"
-if not os.path.exists(file_name):
-    print(f"❌ 에러: '{file_name}' 파일이 없습니다.")
+file_path = os.path.join("data", file_name)
+
+if not os.path.exists(file_path):
+    print(f"❌ 에러: '{file_path}' 파일이 없습니다.")
 else:
     # 파일명 정보 추출
     name_parts = file_name.replace('.csv', '').split('_')
     title_info = f"{name_parts[0]} {name_parts[-1]}"
     save_info = f"{name_parts[0]}_{name_parts[-1]}"
 
-    df = pd.read_csv(file_name)
+    report_dir = os.path.join("reports", save_info)
+
+    if not os.path.exists(report_dir):
+        os.makedirs(report_dir)
+
+    df = pd.read_csv(file_path)
     df['Timestamp'] = pd.to_datetime(df['Timestamp'])
     df['Clean_Timestamp'] = df['Timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S') # 나노초 삭제
     df['Status_Value'] = df['Status'].map({'Success': 1, 'Fail': 0})
@@ -57,7 +64,7 @@ else:
     plt.ylabel('Model Name', fontsize=12)
     plt.grid(axis='x', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig(f'{save_info}_api_success_rate.png')
+    plt.savefig(os.path.join(report_dir, f'{save_info}_api_success_rate.png'))
     plt.close()
 
     # 그래프 2: 시간대별 히트맵
@@ -68,7 +75,7 @@ else:
     plt.xlabel('Time', fontsize=12)
     plt.ylabel('Model Name', fontsize=12)
     plt.tight_layout()
-    plt.savefig(f"{save_info}_api_timeline_heatmap.png")
+    plt.savefig(os.path.join(report_dir, f'{save_info}_api_timeline_heatmap.png'))
     plt.close()
 
     # 그래프 3: 시간대별 에러 분석 리포트
@@ -95,5 +102,5 @@ else:
     plt.ylim(0, hourly_stats['errors'].max() * 1.3 if hourly_stats['errors'].max() > 0 else 5)
     plt.grid(axis='y', linestyle='--', alpha=0.5)
     plt.tight_layout()
-    plt.savefig(f'{save_info}_api_error_analysis.png', dpi=300)
+    plt.savefig(os.path.join(report_dir, f'{save_info}_api_error_analysis.png'), dpi=300)
     plt.close()
