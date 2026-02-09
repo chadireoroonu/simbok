@@ -5,7 +5,7 @@ import os
 import matplotlib
 
 # 데이터 로드 및 통합 전처리
-file_name = "72h_test_log_20260129.csv"
+file_name = "100h_test_log_20260202.csv"
 file_path = os.path.join("data", file_name)
 
 if not os.path.exists(file_path):
