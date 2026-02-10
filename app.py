@@ -1,4 +1,3 @@
-
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
@@ -20,6 +19,8 @@ def test_api_key(api_key):
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
+            # model="gemini-2.5-pro",
+            # model="gemini-2.0-flash",
             model="gemma-3-27b-it",
             contents="안녕"
         )
@@ -32,8 +33,28 @@ def test_api_key(api_key):
 def generate_narration(api_key, text):
     try:
         client = genai.Client(api_key=api_key)
-        prompt = f"아래 뉴스를 10문장 이내의 구어체로 요약해줘:\n{text[:6000]}"
+        prompt = f"""
+            기사를 바탕으로 쇼츠/영상 대본을 작성해줘. 
+            아래 규칙을 엄격히 준수해:
+
+            1. [제목]: 짧고 명확하게 작성
+            - 3가지 선택지를 제공해줘. 그 중 한 가지는 내용에 장소 이름이나 사람 이름이 있다면 반드시 포함 해
+
+            2. [나레이션]: 전문 보도형 톤으로 작성
+            - 1분 30초에서 2분 분량
+
+            3. [영상 설명]: 5줄 내외, "~했습니다" 체 사용
+
+            4. [해시태그]: 검색량이 많은 관련 키워드 위주로 10개 내외 작성
+            
+            ⚠️ 금지 사항: 
+            - 소괄호() 및 대괄호[] 등 모든 괄호 사용 금지 (항목 구분자 제외)
+            - 별표(**) 등 마크다운 강조 표시 절대 사용 금지
+            
+            - 텍스트만 깔끔하게 출력해
+            \n{text[:6000]}"""
         response = client.models.generate_content(
+            # model="gemini-2.5-pro",
             model="gemma-3-27b-it",
             contents=prompt
         )
