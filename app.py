@@ -224,5 +224,35 @@ if st.session_state['filtered_df'] is not None:
                             st.session_state[f'narration_{idx}'] = narration
                         st.rerun()
                 if f'narration_{idx}' in st.session_state:
-                    st.write(st.session_state[f'narration_{idx}'])
+                    res = st.session_state[f'narration_{idx}']
+                    
+                    if isinstance(res, dict) and "error" not in res:
+                        titles_list = res.get("title", [])
+                        narration = res.get("narration", "")
+                        description = res.get("description", "")
+                        hashtags_list = res.get("hashtags", [])
+
+                        st.markdown("---")
+                        
+                        titles_combined = "\n".join([f"{i+1}. {t}" for i, t in enumerate(titles_list)])
+                        st.markdown(f"""
+                            <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b; margin-bottom: 20px;">
+                                <h3 style="margin-top: 0; color: #31333F;">📌 추천 제목</h3>
+                                <p style="white-space: pre-wrap; font-size: 1.1rem; font-weight: 500;">{titles_combined}</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                        st.subheader("🎙️ 나레이션")
+                        st.info(narration)
+
+                        st.subheader("📝 영상 설명")
+                        st.write(description)
+
+                        st.subheader("🏷️ 해시태그")
+                        tags_text = " ".join([f"#{tag.strip('#')}" for tag in hashtags_list])
+                        st.code(tags_text, language=None)
+                    else:
+                        error_msg = res.get("error") if isinstance(res, dict) else res
+                        st.error(f"데이터 표시 중 오류 발생: {error_msg}")
+                        st.write(res) # 원문 출력
             st.write(f"🔗 [원문 링크 바로가기]({row['link']})")
