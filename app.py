@@ -8,6 +8,7 @@ import re
 import os
 from google import genai
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 DEFAULT_API_KEY = os.getenv("GOOGLE_API_KEY", "")
@@ -33,34 +34,46 @@ def test_api_key(api_key):
 def generate_narration(api_key, text):
     try:
         client = genai.Client(api_key=api_key)
+        
+        # 💡 JSON 형식을 강제하기 위한 프롬프트 수정
         prompt = f"""
-            기사를 바탕으로 쇼츠/영상 대본을 작성해줘. 
-            아래 규칙을 엄격히 준수해:
+        기사를 바탕으로 쇼츠/영상 대본 데이터를 생성해줘. 
+        반드시 아래의 JSON 형식을 엄격히 준수해서 출력해야 해. 
+        마크다운 기호(```json 등)는 제외하고 순수 JSON 텍스트만 출력해.
 
-            1. [제목]: 짧고 명확하게 작성
-            - 3가지 선택지를 제공해줘. 그 중 한 가지는 내용에 장소 이름이나 사람 이름이 있다면 반드시 포함 해
+        JSON 구조 예시:
+        {{
+            "title": ["제목 1", "제목 2", "제목 3"],
+            "narration": "전체 나레이션 내용",
+            "description": "5줄 내외의 영상 설명",
+            "hashtags": ["태그1", "태그2", "태그10"]
+        }}
 
-            2. [나레이션]: 전문 보도형 톤으로 작성
-            - 1분 30초에서 2분 분량
+        작성 규칙:
+        1. title: 3가지 선택지 제공 (장소나 사람이 있다면 반드시 하나 이상 포함)
+        2. narration: 전문 보도형 톤, 1분 30초~2분 분량
+        3. description: 5줄 내외, "~했습니다" 체
+        4. hashtags: 검색 최적화 키워드 10개 내외
+        5. ⚠️ 금지 사항: 모든 항목에서 괄호() 및 강조 표시(**) 사용 금지
 
-            3. [영상 설명]: 5줄 내외, "~했습니다" 체 사용
+        기사 본문:
+        {text[:6000]}"""
 
-            4. [해시태그]: 검색량이 많은 관련 키워드 위주로 10개 내외 작성
-            
-            ⚠️ 금지 사항: 
-            - 소괄호() 및 대괄호[] 등 모든 괄호 사용 금지 (항목 구분자 제외)
-            - 별표(**) 등 마크다운 강조 표시 절대 사용 금지
-            
-            - 텍스트만 깔끔하게 출력해
-            \n{text[:6000]}"""
         response = client.models.generate_content(
-            # model="gemini-2.5-pro",
             model="gemma-3-27b-it",
             contents=prompt
         )
-        return response.text
+        
+        # 💡 결과가 문자열로 오므로 JSON 객체로 파싱 시도
+        try:
+            return json.loads(response.text)
+        except:
+            # AI가 마크다운 코드 블록 등을 포함했을 경우를 대비한 정제 로직
+            clean_json = response.text.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_json)
+
     except Exception as e:
-        return f"AI 가공 중 에러 발생: {e}"
+        return {"error": f"AI 가공 중 에러 발생: {e}"}
 
 # UI 레이아웃
 st.title("🦁 뉴스 요약기")
