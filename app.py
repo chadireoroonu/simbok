@@ -74,6 +74,34 @@ def generate_narration(api_key, text):
 
     except Exception as e:
         return {"error": f"AI 가공 중 에러 발생: {e}"}
+    
+# AI 재가공 함수
+def regenerate_field(api_key, text, target_field, current_data):
+    try:
+        client = genai.Client(api_key=api_key)
+        
+        prompt = f"""
+        기존에 생성된 결과물 중 [{target_field}] 부분만 새롭게 다시 작성해줘.
+        나머지 부분은 기존 내용을 유지하거나 참고해서 자연스럽게 연결해.
+        반드시 전체 데이터를 다시 JSON 형식으로 출력해야 해.
+
+        기존 내용:
+        {json.dumps(current_data, ensure_ascii=False)}
+
+        수정 지시: [{target_field}] 항목을 더 흥미롭고 전문적인 보도 톤으로 새롭게 작성해.
+
+        기사 본문:
+        {text[:6000]}"""
+
+        response = client.models.generate_content(
+            model="gemma-3-27b-it",
+            contents=prompt
+        )
+        
+        clean_json = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(clean_json)
+    except Exception as e:
+        return {"error": f"재생성 중 에러 발생: {e}"}
 
 # UI 레이아웃
 st.title("🦁 뉴스 요약기")
