@@ -64,13 +64,12 @@ def generate_narration(api_key, text):
             contents=prompt
         )
         
-        # 💡 결과가 문자열로 오므로 JSON 객체로 파싱 시도
         try:
-            return json.loads(response.text)
+            return json.loads(response.text, strict=False) # 제어 문자 에러 방지
         except:
-            # AI가 마크다운 코드 블록 등을 포함했을 경우를 대비한 정제 로직
+            # 마크다운 태그 제거 및 공백 정제 후 다시 시도
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_json)
+            return json.loads(clean_json, strict=False)
 
     except Exception as e:
         return {"error": f"AI 가공 중 에러 발생: {e}"}
