@@ -254,29 +254,36 @@ if st.session_state['filtered_df'] is not None:
                     res = st.session_state[f'narration_{idx}']
                     
                     if isinstance(res, dict) and "error" not in res:
-                        titles_list = res.get("title", [])
-                        narration = res.get("narration", "")
-                        description = res.get("description", "")
-                        hashtags_list = res.get("hashtags", [])
-
                         st.markdown("---")
                         
-                        titles_combined = "\n".join([f"{i+1}. {t}" for i, t in enumerate(titles_list)])
-                        st.markdown(f"""
-                            <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b; margin-bottom: 20px;">
-                                <h3 style="margin-top: 0; color: #31333F;">📌 추천 제목</h3>
-                                <p style="white-space: pre-wrap; font-size: 1.1rem; font-weight: 500;">{titles_combined}</p>
-                            </div>
-                        """, unsafe_allow_html=True)
+                        col_t1, col_t2 = st.columns([8, 2])
+                        with col_t1: st.subheader("📌 추천 제목")
+                        if col_t2.button("재생성 🔄", key=f"re_title_{idx}"):
+                            with st.spinner('제목 뽑는 중...'):
+                                st.session_state[f'narration_{idx}'] = regenerate_field(target_api_key, st.session_state[f'content_{idx}'], "title", res)
+                            st.rerun()
+                        
+                        titles_combined = "\n".join([f"{i+1}. {t}" for i, t in enumerate(res.get("title", []))])
+                        st.markdown(f"""<div style="background-color: #f0f2f6; padding: 15px; border-radius: 10px; border-left: 5px solid #ff4b4b; margin-bottom: 20px;">
+                                        <p style="white-space: pre-wrap; font-size: 1.1rem; font-weight: 500;">{titles_combined}</p></div>""", unsafe_allow_html=True)
+                        col_n1, col_n2 = st.columns([8, 2])
+                        with col_n1: st.subheader("🎙️ 나레이션")
+                        if col_n2.button("재생성 🔄", key=f"re_narr_{idx}"):
+                            with st.spinner('대본 다시 쓰는 중...'):
+                                st.session_state[f'narration_{idx}'] = regenerate_field(target_api_key, st.session_state[f'content_{idx}'], "narration", res)
+                            st.rerun()
+                        st.info(res.get("narration", ""))
 
-                        st.subheader("🎙️ 나레이션")
-                        st.info(narration)
-
-                        st.subheader("📝 영상 설명")
-                        st.write(description)
+                        col_d1, col_d2 = st.columns([8, 2])
+                        with col_d1: st.subheader("📝 영상 설명")
+                        if col_d2.button("재생성 🔄", key=f"re_desc_{idx}"):
+                            with st.spinner('설명 수정 중...'):
+                                st.session_state[f'narration_{idx}'] = regenerate_field(target_api_key, st.session_state[f'content_{idx}'], "description", res)
+                            st.rerun()
+                        st.write(res.get("description", ""))
 
                         st.subheader("🏷️ 해시태그")
-                        tags_text = " ".join([f"#{tag.strip('#')}" for tag in hashtags_list])
+                        tags_text = " ".join([f"#{tag.strip('#')}" for tag in res.get("hashtags", [])])
                         st.code(tags_text, language=None)
                     else:
                         error_msg = res.get("error") if isinstance(res, dict) else res
