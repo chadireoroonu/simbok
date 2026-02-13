@@ -282,9 +282,13 @@ if st.session_state['filtered_df'] is not None:
                             st.rerun()
                         st.write(res.get("description", ""))
 
-                        st.subheader("🏷️ 해시태그")
-                        tags_text = " ".join([f"#{tag.strip('#')}" for tag in res.get("hashtags", [])])
-                        st.code(tags_text, language=None)
+                        col_t1, col_t2 = st.columns([8, 2])
+                        with col_t1: st.subheader("🏷️ 해시태그")
+                        if col_t2.button("재생성 🔄", key=f"re_tag_{idx}"):
+                            with st.spinner('태그 수정 중...'):
+                                st.session_state[f'narration_{idx}'] = regenerate_field(target_api_key, st.session_state[f'content_{idx}'], "hashtags", res)
+                            st.rerun()
+                        st.write(res.get("hashtags", ""))
                     else:
                         error_msg = res.get("error") if isinstance(res, dict) else res
                         st.error(f"데이터 표시 중 오류 발생: {error_msg}")
